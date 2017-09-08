@@ -1,0 +1,115 @@
+Overview
+********
+The Fantom Interactive Shell (FISH) is a GUI program that mimics a console application. executes DOS commands, custom commands and Fantom expressions.
+
+It is highly customisable and may be extended with you own
+
+Fish commands may be put into a fish scripts
+
+
+Features:
+ - Ansi colours, standard, extended, and full colour
+ - pretty printed Fantom Lists and Maps
+ - Fully functional Fantom REPL
+ - Full suite of DOS and system commands
+ - Usable program launcher
+ - Horizontal scroll bar (previously unheard of in shells!)
+ - Customisable and extensible command API
+ - Skinnable
+ - Windows \ Unix / path separator agnostic
+
+
+
+
+bash and other shells are a poor mans programming environment. All variables, be they numbers, files or paths, are based on strings, no native file reading facilities. |piping| is just a poor mans method chaining,
+It's all different everytime I change environments.
+
+
+
+Custom Commands
+***************
+
+Scripts
+=======
+Simple cmds may be
+
+
+
+Pod Plugins
+===========
+To make your Fish cmds more portable, and to customise *anything* in Fish, package up your code in a pod.
+
+To let Fish know that it should use your pod, add the following to the index map in 'build.fan':
+
+  syntax: fantom
+  index = [ "afFish.module" : "<module>" ]
+
+Where <module> is the qualified type name of an IoC module.
+
+
+
+Cmd Highlighting
+****************
+The default colours are as follows:
+
+ - white:  general text
+ - yellow: when a suggestion is available
+ - cyan:   when a cmd or arg is valid
+ - red:    when a cmd or arg is known to be wrong
+
+
+
+
+ctx.prompt = |->Str| { "Awesome! >" }
+
+
+example of path manipulation via Fantom syntax->
+
+  path += "/temp/bin/"
+
+Cmds can be used in regular Fantom expressions:
+
+  dir.findAll { it.isDir }
+  dir.each { print(it, "\n" }
+
+
+
+
+Limitations
+***********
+The console buffer has no maximum size, so if you don't 'clear' the screen, things could get slow!
+
+
+
+Why?
+****
+I created Fish because I wanted a cross platform console app that not only supplys helpful DOS commands, but also lets me use the *power* of Fantom expressions when needed.
+
+The little things that make me use Fish are:
+
+ - /forward slashes/ in paths work on Windows.
+ - horizontal scroll bar - no word wrap!
+ - full ANSI colour
+
+
+
+Credits
+*******
+The Fantom Interactive Shell was inspired by:
+ - [BeanShell]`http://www.beanshell.org/`
+ - [Fish]`https://fishshell.com/`
+ - [Fwtsh]`https://bitbucket.org/ivan_inozemtsev/fwtsh`
+ - [Groovysh]`http://groovy-lang.org/groovysh.html`
+
+The ASCII Fish was dervied from a drawing by [Fog]`http://www.ascii-art.de/ascii/def/fish.txt`.
+
+
+
+Naaa
+----
+It is not a code editor, use F4, camerbear, flux
+
+F4 for writing projects, not scripts
+
+While FISH does compile and execute native Fantom code, it is not designed to be a REPL. Use fansh instead.
+
