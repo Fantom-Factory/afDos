@@ -1,53 +1,157 @@
 
 class DosTerminal {
-	
-	Bool			showHiddenFiles
 
-	Void copy(Str from, Str? to := null) {
-		// if to is null, it just creates a copy! -> unique name
-		
+	private	File[]	currentDirStack		:= File[,]
+
+	@NoDoc
+	Int			currentDirStackMaxSize	:= 25
+	
+	@NoDoc
+	Int			zipBufferSize			:= 16*1024
+	
+	|Float, Uri|?	onZipProgess		:= null
+	|Err|?			onZipWarn			:= null
+	
+	Bool		showHiddenFiles
+	
+	Obj?		copyOverwrite
+	
+	DosOps		fileOps
+
+	** Gets / sets the current directory that all commands are run from.
+	File currentDir {
+		get { currentDirStack.first ?: `./`.toFile }
+		set {
+			if (!it.isDir)
+				throw ArgErr("${it.osPath} is not a directory")
+			if (!it.exists)
+				throw ArgErr("Does not exist: ${it.normalize.osPath}")
+			normed := it.normalize
+			stack  := currentDirStack
+			if (stack.first != normed)
+				stack.insert(0, normed)
+			while (stack.size > currentDirStackMaxSize)
+				stack.removeAt(-1)
+		}
 	}
 	
-	Void delete(Str path) {
+	** Standard it-block ctor.
+	new make(|This|? f := null) {
+		f?.call(this)
 		
+		if (currentDirStackMaxSize < 1)
+			throw Err("Invalid afDos.currentDirStackMaxSize = ${currentDirStackMaxSize}, must be >= 1")
+		if (fileOps == null)
+			fileOps = DosOps()
+	}
+	
+	** Change directory.
+	File cd(Str dir) {
+		currentDir = toFile(dir)
+	}
+	
+	Void copy(Str from, Str? to := null) {
+		copyTo	 := false
+		fromFile := toFile(from)
+		toFile	 := null as File
+		if (to == null) {
+			// if to is null, it just creates a copy! -> unique name
+			toFile = fromFile.parent.plus("Copy of ${fromFile.name}".toUri, false)
+			if (fromFile.isDir) {
+				toFile = toFile.uri.plusSlash.toFile
+				copyTo = true
+			}
+		} else {
+			toFile = this.toFile(to)
+		}
+		toFile = fileOps.uniqueFile(toFile)
+		
+		if (toFile.isDir && !copyTo)
+			fileOps.copyInto(fromFile, toFile, copyOverwrite)
+		else
+			fileOps.copyTo(fromFile, toFile, copyOverwrite)
+	}
+
+	Bool delete(Str path) {
+		fileOps.delete(toFile(path))
 	}
 	
 	File[] list(Str? pathGlob := null) {
-		[,]
+		path := toFile(pathGlob)
+		return path.isDir
+			? fileOps.list(path, null, showHiddenFiles)
+			: fileOps.list(path.parent, path.name, showHiddenFiles)
 	}
 
-	Void mkdir(Str dir) {
-		
+	Void createDir(Str dir) {
+		fileOps.createDir(toFile(dir))
 	}
 	
 	Void move(Str from, Str to) {
-		
+		fromFile := toFile(from)
+		toFile	 := toFile(to)
+		if (toFile.isDir)
+			fileOps.moveInto(fromFile, toFile)
+		else
+			fileOps.moveTo(fromFile, toFile)		
 	}
 	
-//	File[] osRoots() {
-//		[,]
-//	}
+	File[] osRoots() {
+		fileOps.osRoots
+	}
+
+	Int[] driveLetters() {
+		fileOps.driveLetters
+	}
 
 	Void rename(Str path, Str newName) {
-		
+		fileOps.rename(toFile(path), newName)
 	}
 	
 	File uniqueFile(Str path) {
-		File(``)
+		fileOps.uniqueFile(toFile(path))
 	}
-	
 	
 	Bool shouldHide(File file) {
-//		showHiddenFiles ? isSystem(file) : isHidden(file)
-		false
+		showHiddenFiles ? fileOps.isSystem(file) : fileOps.isHidden(file)
 	}
 
-	** options to include "extraPath" or "pathPrefix" for dir name
-	File? zip() {
-		null
+	File zip(Str toCompress, Str? destFile := null, Str? pathPrefix := null) {
+		fileOps.zip(toFile(toCompress), toFile(destFile), [
+			"bufferSize"	: zipBufferSize,
+			"pathPrefix"	: pathPrefix?.toUri,
+			"onProgress"	: onZipProgess,
+			"onWarn"		: onZipWarn
+		])
 	}
 	
-	Void unzip() {
-		
+	File gzip(Str toCompress, Str? destFile := null) {
+		fileOps.gzip(toFile(toCompress), toFile(destFile), [
+			"bufferSize"	: zipBufferSize,
+			"onProgress"	: onZipProgess
+		])
+	}
+	
+	File unzip(Str toDecompress, Str? destDir := null, [Str:Obj]? options := null) {
+		srcFile := toFile(toDecompress)
+		return srcFile.ext == "gz"
+			 ? fileOps.ungzip(srcFile, toFile(destDir), [
+				"bufferSize"	: zipBufferSize,
+				"overwrite"		: copyOverwrite
+			])
+			: fileOps.unzip(srcFile, toFile(destDir), [
+				"bufferSize"	: zipBufferSize,
+				"overwrite"		: copyOverwrite
+			])
+	}
+	
+	
+	// ---- Attributes ----
+	
+	File toFile(Str? path, Bool checked := true) {
+		if (path == null) return currentDir
+		uri := DosUtils.toFileUri(path) ?: (checked ? throw Err("Invalid file path: $path") : null)
+		// re-normalise to take on board the casing of the dir name
+		return uri == null ? null : currentDir.plus(uri, false).normalize
 	}
 }

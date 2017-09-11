@@ -6,7 +6,7 @@ using [java] java.io::File as JFile
 using concurrent::AtomicRef
 
 ** (Service) - 
-** A stateless class of DOS operations.
+** A stateless class of basic DOS operations.
 const class DosOps {
 
 	@NoDoc
@@ -28,32 +28,44 @@ const class DosOps {
 		return dir.parent.createDir(dir.name)
 	}
 	
-	** Delete the given file. 
+	** Deletes the given file 
 	** If the file represents a directory, then recursively delete it. 
 	** If the file does not exist, then it does nothing.
+	** Returns 'true' if the file was deleted.
 	** 
 	** The given 'areYouSure' function is invoked if the file is a system file or a top level file.
 	** 
 	** Throws IOErr on error.
-	Void delete(File path, |File, Str->Bool|? areYouSure := null) {
-		if (!path.exists) return
+	Bool delete(File path, |File, Str->Bool|? areYouSure := null) {
+		if (!path.exists) return false
 		areYouSure = areYouSure ?: |->Bool| { true }
 
 		if (isSystem(path))
 			if (!areYouSure(path, "Is a system file"))
-				return
+				return false
 
 		if (path.normalize.uri.path.size <= 2)
 			if (!areYouSure(path, "Is a top level file"))
-				return
+				return false
 		
 		path.delete
+		return true
 	}
-	
+
 	** Renames the given file.
 	** Returns the renamed file.
 	Void rename(File path, Str newName) {
-		path.rename(newName)
+		if (newName != path.name) {
+			
+			// can't rename a file to the same (case insensitive) name
+			// so, rename it twice
+			if (newName.equalsIgnoreCase(path.name)) {
+				tmpName := newName + Int.random(0..9999).toStr
+				path = path.rename(tmpName)
+			}
+
+			path.rename(newName)
+		}
 	}
 
 	** Returns the root directories of the operating system's local file system.
@@ -81,6 +93,18 @@ const class DosOps {
 		Env.cur.os == "win32"
 			? osRoots.map { it.path.first.upper[0] }
 			: Int#.emptyList
+	}
+	
+	
+	** Returns 'true' if the file has the 'system' attribute.
+	** Always returns 'false' on posix systems.
+	Bool isSystem(File file) {
+		if (Env.cur.os != "win32")
+			return false
+		
+		path := ((JFile) Interop.toJava(file)).toPath
+		attr := Files.readAttributes(path, "system", (LinkOption[]) LinkOption#.emptyList)
+		return attr.get("system") == true 
 	}
 	
 	** Returns 'true' if the file name starts with a dot ( '.' ).
@@ -178,6 +202,11 @@ const class DosOps {
 		files := dir.list(regex)
 		if (showHiddenFiles == false)
 			files = files.exclude { isHidden(it) }
+
+		// FIXME sort on dirs / and numeric extensions
+//		dirs  := dir.listDirs (regex).sort |f1, f2| { f1.name.compareIgnoreCase(f2.name) }		
+//		files := dir.listFiles(regex).sort |f1, f2| { f1.name.compareIgnoreCase(f2.name) }
+
 		return files
 	}
 
@@ -367,6 +396,8 @@ const class DosOps {
 		if (destDir != null && !destDir.isDir)
 			throw ArgErr("Destination must be a directory - ${destDir}")
 		
+		// TODO read zip file first, then give unzip progress
+		
 		overwrite	:= options?.get("overwrite") ?: true
 		bufferSize	:= options?.get("bufferSize") ?: 16*1024
 		dstDir		:= destDir ?: toDecompress.parent
@@ -395,6 +426,10 @@ const class DosOps {
 			throw ArgErr("Destination must NOT be a directory - ${destFile}")
 		
 		overwrite	:= options?.get("overwrite") ?: true
+		// FIXME use overwrite
+		if (overwrite!= null)
+			throw UnsupportedErr("overwrite")
+
 		bufferSize	:= options?.get("bufferSize") ?: 16*1024
 		dstFile		:= destFile ?: toDecompress.parent + toDecompress.basename.toUri
 		if (dstFile == toDecompress)
@@ -460,14 +495,5 @@ const class DosOps {
 	private Duration? _osRootsLastUpdated {
 		get { _osRootsLastUpdatedRef.val }
 		set { _osRootsLastUpdatedRef.val = it }		
-	}
-	
-	private static Bool isSystem(File file) {
-		if (Env.cur.os != "win32")
-			return false
-		
-		path := ((JFile) Interop.toJava(file)).toPath
-		attr := Files.readAttributes(path, "system", (LinkOption[]) LinkOption#.emptyList)
-		return attr.get("system") == true 
 	}
 }
