@@ -8,6 +8,13 @@ const class DosModule {
 	}
 	
 	@Build
+	DosTerminal buildDosTerminal(ConfigSource config) {
+		DosTerminal {
+			it.currentDirStackMaxSize = config.get("afDos.currentDirStackSize", Int#)
+		}
+	}
+	
+	@Build
 	DosOps buildDosOps(ConfigSource config) {
 		DosOps {
 			// TODO make exeExts a contributable service
