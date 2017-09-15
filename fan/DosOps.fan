@@ -103,7 +103,7 @@ const class DosOps {
 			return false
 		
 		path := ((JFile) Interop.toJava(file)).toPath
-		attr := Files.readAttributes(path, "system", (LinkOption[]) LinkOption#.emptyList)
+		attr := Files.readAttributes(path, "dos:system", (LinkOption[]) LinkOption#.emptyList)
 		return attr.get("system") == true 
 	}
 	
@@ -198,7 +198,13 @@ const class DosOps {
 	File[] list(File dir, Str? filterGlob := null, Bool showHiddenFiles := true) {
 		if (!dir.isDir)
 			throw IOErr("Not a directory: ${dir.normalize.uri}")
-		regex := filterGlob == null ? null : "(?i)${Regex.glob(filterGlob)}".toRegex
+		
+		regex := null as Regex
+		if (filterGlob != null) {
+			if (!filterGlob.endsWith("*"))
+				filterGlob += "*"
+			regex = "(?i)${Regex.glob(filterGlob)}".toRegex
+		}
 		files := dir.list(regex)
 		if (showHiddenFiles == false)
 			files = files.exclude { isHidden(it) }

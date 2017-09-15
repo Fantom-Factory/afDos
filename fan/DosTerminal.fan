@@ -11,10 +11,10 @@ class DosTerminal {
 	
 	|Float, Uri|?	onZipProgess		:= null
 	|Err|?			onZipWarn			:= null
+	|File, Str->Bool|?	onConfirmDelete	:= null
+	Obj?		onCopyOverwrite			:= null
 	
 	Bool		showHiddenFiles
-	
-	Obj?		copyOverwrite
 	
 	DosOps		fileOps
 
@@ -50,7 +50,8 @@ class DosTerminal {
 		currentDir = toFile(dir)
 	}
 	
-	Void copy(Str from, Str? to := null) {
+	** Returns dest file - so you can check if its different.
+	File copy(Str from, Str? to := null) {
 		copyTo	 := false
 		fromFile := toFile(from)
 		toFile	 := null as File
@@ -61,19 +62,22 @@ class DosTerminal {
 				toFile = toFile.uri.plusSlash.toFile
 				copyTo = true
 			}
+
 		} else {
 			toFile = this.toFile(to)
 		}
 		toFile = fileOps.uniqueFile(toFile)
 		
 		if (toFile.isDir && !copyTo)
-			fileOps.copyInto(fromFile, toFile, copyOverwrite)
+			fileOps.copyInto(fromFile, toFile, onCopyOverwrite)
 		else
-			fileOps.copyTo(fromFile, toFile, copyOverwrite)
+			fileOps.copyTo(fromFile, toFile, onCopyOverwrite)
+		
+		return toFile
 	}
 
 	Bool delete(Str path) {
-		fileOps.delete(toFile(path))
+		fileOps.delete(toFile(path), onConfirmDelete)
 	}
 	
 	File[] list(Str? pathGlob := null) {
@@ -84,6 +88,7 @@ class DosTerminal {
 	}
 
 	Void createDir(Str dir) {
+		dir = dir.endsWith(File.sep) ? dir : dir + File.sep
 		fileOps.createDir(toFile(dir))
 	}
 	
@@ -137,11 +142,11 @@ class DosTerminal {
 		return srcFile.ext == "gz"
 			 ? fileOps.ungzip(srcFile, toFile(destDir), [
 				"bufferSize"	: zipBufferSize,
-				"overwrite"		: copyOverwrite
+				"overwrite"		: onCopyOverwrite
 			])
 			: fileOps.unzip(srcFile, toFile(destDir), [
 				"bufferSize"	: zipBufferSize,
-				"overwrite"		: copyOverwrite
+				"overwrite"		: onCopyOverwrite
 			])
 	}
 	
