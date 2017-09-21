@@ -153,10 +153,14 @@ class DosTerminal {
 	
 	// ---- Attributes ----
 	
-	File toFile(Str? path, Bool checked := true) {
+	File toFile(Str? path) {
 		if (path == null) return currentDir
-		uri := DosUtils.toFileUri(path) ?: (checked ? throw Err("Invalid file path: $path") : null)
+		uri := DosUtils.toFileUri(path) ?: throw Err("Invalid file path: $path")
+		fil := currentDir.plus(uri, false)
+		
 		// re-normalise to take on board the casing of the dir name
-		return uri == null ? null : currentDir.plus(uri, false).normalize
+		return fil.name.contains("*") || fil.name.contains("?") 
+			? fil.parent.normalize.plus(fil.name.toUri)
+			: fil.normalize
 	}
 }
