@@ -13,7 +13,7 @@ const class DosOps {
 	const Duration	osRootsCacheTimeout	:= 2sec
 
 	@NoDoc
-	const Str[] 	exeExts := ["exe", "bat", "cmd", "com"]
+	const Str[] 	exeExts := "bat cmd com exe".split
 
 	** Standard it-block ctor.
 	new make(|This|? f := null) { f?.call(this) }
