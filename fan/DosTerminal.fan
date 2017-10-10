@@ -66,7 +66,15 @@ class DosTerminal {
 		} else {
 			toFile = this.toFile(to)
 		}
-		toFile = fileOps.uniqueFile(toFile)
+		
+		// create a dup file if no overwrite policy is defined
+		if (onCopyOverwrite == null && !fromFile.isDir) {
+			if (toFile.isDir) {
+				toFile = toFile + fromFile.name.toUri
+				copyTo = true
+			}
+			toFile = fileOps.uniqueFile(toFile)
+		}
 		
 		if (toFile.isDir && !copyTo)
 			fileOps.copyInto(fromFile, toFile, onCopyOverwrite)
