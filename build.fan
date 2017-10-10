@@ -11,6 +11,7 @@ class Build : BuildPod {
 			"pod.dis"		: "Dos",
 			"repo.tags"		: "system",
 			"repo.public"	: "true",
+			"internal"		: "true",
 
 			"afIoc.module"	: "afDos::DosModule"
 		]
