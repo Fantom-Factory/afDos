@@ -207,7 +207,7 @@ const class DosOps {
 		}
 		files := dir.list(regex)
 		if (showHiddenFiles == false)
-			files = files.exclude { isHidden(it) }
+			files = files.exclude { this.isHidden(it) }
 
 		// FIXME sort on dirs / and numeric extensions
 //		dirs  := dir.listDirs (regex).sort |f1, f2| { f1.name.compareIgnoreCase(f2.name) }		
