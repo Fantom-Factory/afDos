@@ -411,7 +411,10 @@ const class DosOps {
 		try {
 			File? entry
 			while ((entry = zip.readNext) != null) {
-				entry.copyTo(dstDir + entry.uri.relTo(`/`), ["overwrite":overwrite])
+				if (entry.isDir)
+					dstDir.plus(entry.uri.relTo(`/`), false).create
+				else
+					entry.copyTo(dstDir + entry.uri.relTo(`/`), ["overwrite":overwrite])
 			}
 		} finally {
 			zip.close
