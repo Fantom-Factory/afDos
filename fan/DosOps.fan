@@ -251,7 +251,7 @@ const class DosOps {
 	File uniqueFile(File file) {
 		if (file.isDir)
 			throw IOErr("Is a directory: ${file.normalize.uri}")
-		destFile := file
+		destFile := file.normalize		// .normalize so we always have a parent
 		destName := destFile.name
 		fileIndex := 0
 		while (destFile.exists) {
@@ -316,17 +316,19 @@ const class DosOps {
 					// so we can show progress when zipping large files
 //					src.in(bufferSize).pipe(out)
 					
-					in := src.in 
-					error := null as Err
-					while (error == null) {
-						bytesRead := 0
+					in			:= src.in 
+					error 		:= null as Err
+					bytesRead	:= 0 as Int
+					while (error == null && bytesRead != null) {
+						bytesRead = 0
+
 						try {
 							bytesRead = in.readBuf(buf.clear, bufferSize)
 						} catch (IOErr ioe) {
 							error = IOErr("Problems reading: ${src.osPath}\n  ${ioe.msg}\n")
 						}
 						
-						if (error != null) {
+						if (error == null && bytesRead != null) {
 							out.writeBuf(buf.flip)
 							bytesWritten += bytesRead
 							onProgress?.call(bytesWritten / noOfBytes.toFloat, path)
