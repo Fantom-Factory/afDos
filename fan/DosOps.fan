@@ -209,7 +209,7 @@ const class DosOps {
 		if (showHiddenFiles == false)
 			files = files.exclude { this.isHidden(it) }
 
-		// FIXME sort on dirs / and numeric extensions
+		// fixme sort on dirs / and numeric extensions
 //		dirs  := dir.listDirs (regex).sort |f1, f2| { f1.name.compareIgnoreCase(f2.name) }		
 //		files := dir.listFiles(regex).sort |f1, f2| { f1.name.compareIgnoreCase(f2.name) }
 
@@ -251,10 +251,10 @@ const class DosOps {
 	File uniqueFile(File file) {
 		if (file.isDir)
 			throw IOErr("Is a directory: ${file.normalize.uri}")
-		destFile := file.normalize		// .normalize so we always have a parent
+		destFile := file.normalize		// .normalize so we always have a parent  
 		destName := destFile.name
 		fileIndex := 0
-		while (destFile.exists) {
+		while (destFile.exists) { 
 			fileIndex++
 			destName = "${file.basename}(${fileIndex})"
 			if (destFile.ext != null)
@@ -274,7 +274,7 @@ const class DosOps {
 	**  - bufferSize: an 'Int' that defines the stream buffer size. Defaults to 16Kb.
 	**  - pathPrefix: a 'Uri' to prefix all files in the zip with. Must be a dir.
 	**  - onProgress: '|Float percent, Uri path|' callback to show progress
-	**  - onWarn: '|Err err|' callback when a src file cannot be read - these files are skipped
+	**  - onWarn    : '|Err err|' callback when a src file cannot be read - these files are skipped
 	File zip(File toCompress, File? destFile := null, [Str:Obj]? options := null) {
 		if (destFile != null && destFile.isDir)
 			throw ArgErr("Destination can not be a directory - ${destFile}")
@@ -284,7 +284,12 @@ const class DosOps {
 		
 		onProgress	:= (|Float, Uri|?) options?.get("onProgress")
 		onWarn		:= (|Err|?) options?.get("onWarn")
-
+		toIgnore	:= null as Str[]
+		ignore		:= options?.get("ignore")
+		if (ignore is Str)
+			toIgnore = Str[ignore] 
+		if (ignore is Obj[])
+			toIgnore = ((Obj[]) ignore).map |t->Str| { t.toStr } 
 		noOfFiles 	:= 0
 		noOfBytes 	:= 0
 		toCompress.walk |src| {
@@ -293,7 +298,7 @@ const class DosOps {
 				noOfBytes += src.size
 			}
 		}
-		
+
 		bufferSize	:= options?.get("bufferSize") ?: 16*1024
 		dstFile		:= uniqueFile(destFile ?: toCompress.parent + `${toCompress.basename}.zip`) 
 		zip			:= Zip.write(dstFile.out(false, bufferSize))		
@@ -305,6 +310,13 @@ const class DosOps {
 
 			toCompress.walk |src| {
 				if (src.isDir) return
+				
+				if (toIgnore != null) {
+					rel := src.uri.relTo(toCompress.uri)
+					// todo use globs
+					if (toIgnore.contains(rel.path.first))
+						return
+				}
 
 				path := pathPrefix + src.uri.relTo(parentUri)
 				// don't append path to detail path, cause Java Heap Space probs with big dirs ~ 24,000 files
@@ -404,7 +416,7 @@ const class DosOps {
 		if (destDir != null && !destDir.isDir)
 			throw ArgErr("Destination must be a directory - ${destDir}")
 		
-		// TODO read zip file first, then give unzip progress
+		// todo read zip file first, then give unzip progress
 		
 		overwrite	:= options?.get("overwrite") ?: true
 		bufferSize	:= options?.get("bufferSize") ?: 16*1024
@@ -437,7 +449,7 @@ const class DosOps {
 			throw ArgErr("Destination must NOT be a directory - ${destFile}")
 		
 		overwrite	:= options?.get("overwrite") ?: true
-		// FIXME use overwrite
+		// fixme use overwrite
 		if (overwrite!= null)
 			throw UnsupportedErr("overwrite")
 
