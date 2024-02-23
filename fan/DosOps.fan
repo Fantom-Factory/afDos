@@ -278,8 +278,12 @@ const class DosOps {
 	File zip(File toCompress, File? destFile := null, [Str:Obj]? options := null) {
 		if (destFile != null && destFile.isDir)
 			throw ArgErr("Destination can not be a directory - ${destFile}")
-		pathPrefix := ((Uri?) options["pathPrefix"]) ?: `/`
-		if (pathPrefix != null && !pathPrefix.isDir)
+		
+		pathPrefix := `/`
+		if (options != null) 
+			pathPrefix = ((Uri?) options["pathPrefix"]) ?: `/`
+		
+		if (!pathPrefix.isDir)
 			throw IOErr("Not a directory: ${pathPrefix}")
 		
 		onProgress	:= (|Float, Uri|?) options?.get("onProgress")
@@ -338,6 +342,8 @@ const class DosOps {
 							bytesRead = in.readBuf(buf.clear, bufferSize)
 						} catch (IOErr ioe) {
 							error = IOErr("Problems reading: ${src.osPath}\n  ${ioe.msg}\n")
+						} finally {
+							in.close
 						}
 						
 						if (error == null && bytesRead != null) {

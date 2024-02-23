@@ -27,7 +27,7 @@ internal class TestDosUtils : Test {
 
 		// win32 os paths strip off trailing slashes
 		verifyEq(toFileUri("\\c:\\fred\\"	), `/C:/fred/`)
-		verifyEq(toFileUri("\\c:\\temp\\"	), `/C:/Temp/`)
+		verifyEq(toFileUri("\\c:\\temp\\"	), `/C:/temp/`)
 		
 		// test rel files
 		verifyEq(toFileUri("fred"	), `fred`)
