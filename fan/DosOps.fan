@@ -327,12 +327,13 @@ const class DosOps {
 				onProgress?.call(bytesWritten / noOfBytes.toFloat, path)
 
 				out := zip.writeNext(path)
+				in	:= src.in 
+				
 				try {
 					// this is the easy way to compress the file - but we do it the hard way
 					// so we can show progress when zipping large files
 //					src.in(bufferSize).pipe(out)
 					
-					in			:= src.in 
 					error 		:= null as Err
 					bytesRead	:= 0 as Int
 					while (error == null && bytesRead != null) {
@@ -342,9 +343,7 @@ const class DosOps {
 							bytesRead = in.readBuf(buf.clear, bufferSize)
 						} catch (IOErr ioe) {
 							error = IOErr("Problems reading: ${src.osPath}\n  ${ioe.msg}\n")
-						} finally {
-							in.close
-						}
+						} 
 						
 						if (error == null && bytesRead != null) {
 							out.writeBuf(buf.flip)
@@ -357,6 +356,8 @@ const class DosOps {
 						onWarn?.call(error)
 					
 				} finally
+					in.close
+					out.flush
 					out.close
 			}
 			
